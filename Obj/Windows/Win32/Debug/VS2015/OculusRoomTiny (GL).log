@@ -1,1 +1,9 @@
-﻿
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (C:\Users\weidongg\Projects\Max\Oculus\Fiddling\Fiddling\Projects\Windows\VS2015\..\..\..\Obj\Windows\Win32\Debug\VS2015\) contains files shared from another project (OculusRoomTiny (GL).vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  main.cpp
+..\..\..\main.cpp(154): warning C4456: declaration of 'result' hides previous local declaration
+  ..\..\..\main.cpp(10): note: see declaration of 'result'
+..\..\..\main.cpp(6): warning C4100: 'hinst': unreferenced formal parameter
+..\..\..\main.cpp(14): warning C4189: 'sdkVersion': local variable is initialized but not referenced
+..\..\..\main.cpp(158): warning C4189: 'x': local variable is initialized but not referenced
+  OculusRoomTiny (GL).vcxproj -> C:\Users\weidongg\Projects\Max\Oculus\Fiddling\Fiddling\Projects\Windows\VS2015\..\..\..\Bin\Windows\Win32\Debug\VS2015\Fiddling.exe
+  OculusRoomTiny (GL).vcxproj -> C:\Users\weidongg\Projects\Max\Oculus\Fiddling\Fiddling\Projects\Windows\VS2015\..\..\..\Bin\Windows\Win32\Debug\VS2015\Fiddling.pdb (Full PDB)

@@ -1,5 +1,8 @@
 #include "Win32_GLAppUtil.h"
 
+bool isVisible = true;
+Scene* roomScene = nullptr;
+
 int WINAPI WinMain(HINSTANCE hinst, HINSTANCE, LPSTR, int)
 {
 	// Initializes LibOVR, and the Rift
@@ -79,7 +82,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE, LPSTR, int)
 		// ...
 	}
 	
-	// Frame rendering steps:
+	// *** Frame rendering steps:
 	// 1) obtain predicted eye poses based on the headset tracking pose,
 	// 2) render the view for each eye,
 	// 3) and finally submit eye textures to compositor through ovr_SubmitFrame
@@ -89,10 +92,71 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE, LPSTR, int)
 	
 	ovrEyeRenderDesc eyeRenderDesc[2]; // one for each eye.
 	ovrVector3f	hmdToEyeViewOffset[2];
-	
-	eyeRenderDesc[0] = ovr_GetRenderDesc(session, ovrEye_Left, hmdDesc.DefaultEyeFov[0]);
 
-	
+	// eye render description
+	eyeRenderDesc[0] = ovr_GetRenderDesc(session, ovrEye_Left, hmdDesc.DefaultEyeFov[0]);
+	eyeRenderDesc[1] = ovr_GetRenderDesc(session, ovrEye_Right, hmdDesc.DefaultEyeFov[1]);
+	hmdToEyeViewOffset[0] = eyeRenderDesc[0].HmdToEyeOffset; // used  later for adjusting eye separation.
+	hmdToEyeViewOffset[1] = eyeRenderDesc[1].HmdToEyeOffset; // same as above.
+
+	// init our single full screen fov layer (dual-eye layer)
+
+	ovrLayerEyeFov layer;
+	layer.Header.Type		= ovrLayerType_EyeFov;
+	layer.Header.Flags		= 0;
+	// Setting same large texture
+	layer.ColorTexture[0]	= textureSwapChain; 
+	layer.ColorTexture[1]	= textureSwapChain;
+	layer.Fov[0]			= eyeRenderDesc[0].Fov;
+	layer.Fov[1]			= eyeRenderDesc[1].Fov;
+	// Set the view port in a way that left eye takes the left part of the
+	// the big texture, and the right eye takes the right part of the big texture
+	// things start to make more sense why we come up with a one big large 
+	// having tex0.w + tex1.w in the very beginning
+	layer.Viewport[0] = Recti(0, 0,					bufferSize.w / 2, bufferSize.h);
+	layer.Viewport[1] = Recti(bufferSize.w / 2, 0,	bufferSize.w / 2, bufferSize.h);
+
+	// Get both eye poses for rendering loop
+	while (1) {
+		double displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, 0);
+		ovrTrackingState hmdState = ovr_GetTrackingState(session, displayMidpointSeconds, ovrTrue);
+		// CalcEyePoses output the result to layer.RenderPos
+		ovr_CalcEyePoses(hmdState.HeadPose.ThePose, hmdToEyeViewOffset, layer.RenderPose);
+
+		if (isVisible) {
+			// Get next availbale index of the texture swap chain.
+			int currentIndex = 0;
+			ovr_GetTextureSwapChainCurrentIndex(session, textureSwapChain, &currentIndex);
+			/*
+			for (int eye = 0; eye < 2; ++eye)
+			{
+				//eyeRenderTexture[eye]->SetAndClearRenderSurface(eyeDepthBuffer[eye]);
+				// Get view and projection matrices for the Rift camera
+				Vector3f pos = originPos + originRot.Transform(layer.RenderPose[eye].Position);
+				Matrix4f rot = originRot * Matrix4f(layer.RenderPose[eye].Orientation);
+
+				Vector3f finalUp = rot.Transform(Vector3f(0, 1, 0));
+				Vector3f finalForward = rot.Transform(Vector3f(0, 0, -1));
+				Matrix4f view = Matrix4f::LookAtRH(pos, pos + finalForward, finalUp);
+
+				Matrix4f proj = ovrMatrix4f_Projection(layer.Fov[eye], 0.2f, 1000.0f, 0);
+				// Render the scene for this eye.
+				//DIRECTX.SetViewport(layer.Viewport[eye]);
+				roomScene.Render(proj * view, 1, 1, 1, 1, true);
+			}
+			*/
+			
+
+			// COmmit the changes to the texture swap chain.
+			ovr_CommitTextureSwapChain(session, textureSwapChain);
+		}
+		ovrLayerHeader* layers = &layer.Header;
+		ovrResult	result = ovr_SubmitFrame(session, 0, nullptr, &layers, 1);
+		isVisible = (result == ovrSuccess);
+		ovrErrorInfo errorInfo;
+		ovr_GetLastErrorInfo(&errorInfo);
+		int x = 0;
+	}
 	ovr_Destroy(session);
 	ovr_Shutdown();
 	return(0);
